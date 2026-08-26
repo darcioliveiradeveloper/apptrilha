@@ -1,46 +1,113 @@
-#!/usr/bin/env bash
-# =====================================================================
-#  TRILHA — app de celular para registrar caminhadas
-#  Script de exportação: recria o projeto COMPLETO no seu computador.
+#!/bin/sh
+# ============================================================
+#  Trilha. — instalador do projeto completo (diário de caminhadas)
+#  Este único arquivo contém TODO o código do app em texto puro.
+#  Funciona no Windows (Git Bash), macOS e Linux — inclusive se
+#  este arquivo for salvo com quebras de linha do Windows (CRLF).
 #
-#  COMO USAR
-#  1) Selecione TODO o conteúdo deste arquivo e copie
-#  2) No seu computador, salve como: exportar-trilha.sh
-#     (no Bloco de Notas: "Salvar como tipo: Todos os arquivos")
-#  3) Abra o terminal (ou Git Bash no Windows) na pasta onde salvou
-#  4) Rode:  bash exportar-trilha.sh
-#  5) Depois:
-#        cd trilha-app
-#        npm install
-#        npm run dev
-#     e abra http://localhost:3000 no navegador
+#  COMO USAR:
+#    1) salve este arquivo como:  exportar-trilha.sh
+#    2) abra o terminal na pasta onde salvou e rode:
+#           sh exportar-trilha.sh
+#    3) será criada a pasta ./trilha-app com o projeto inteiro
+#    4) para rodar o app:
+#           cd trilha-app
+#           npm install
+#           npm run dev
+#       e abra http://localhost:3000
 #
-#  Pré-requisito: Node.js 18+ instalado (https://nodejs.org)
-# =====================================================================
-set -euo pipefail
+#  Pré-requisito: Node.js 18+ (https://nodejs.org)
+# ============================================================
+set -e #
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) #
+cd "$DIR" #
+# --- se o arquivo estiver com quebras de linha do Windows, re-executa uma cópia limpa --- #
+if [ "${TRILHA_LF:-0}" != "1" ] && grep -q "$(printf '\r')" "$0" 2>/dev/null; then #
+  TRILHA_CLEAN="$DIR/.trilha-clean-$$.sh" #
+  tr -d "\r" < "$0" > "$TRILHA_CLEAN" #
+  TRILHA_LF=1 sh "$TRILHA_CLEAN" #
+  TRILHA_STATUS=$? #
+  rm -f "$TRILHA_CLEAN" #
+  exit $TRILHA_STATUS #
+fi #
+echo "" #
+echo "  Trilha. - recriando o projeto em: $DIR/trilha-app" #
+echo "" #
+rm -rf trilha-app #
+mkdir -p trilha-app/src/components trilha-app/src/views #
+cd trilha-app #
+echo "  -> gravando arquivos do projeto..." #
 
-RAIZ="trilha-app"
+cat > .gitignore <<'TRILHA_FILE_END'
+node_modules
+dist
+*.log
+.DS_Store
+TRILHA_FILE_END
 
-if [ -d "$RAIZ" ]; then
-  echo "A pasta '$RAIZ' ja existe neste local."
-  echo "Apague-a (ou rode o script em outra pasta) e tente de novo."
-  exit 1
-fi
+cat > README.md <<'TRILHA_FILE_END'
+# Trilha. — diário de caminhadas
 
-mkdir -p "$RAIZ/src/components" "$RAIZ/src/views"
-cd "$RAIZ"
+App de celular (web) para registrar caminhadas: cronômetro + GPS, histórico,
+metas e conquistas. Interface em pt-BR.
 
-# ---------------------------------------------------------------------
-cat > package.json <<'FIM_package'
+## Rodar
+
+    npm install
+    npm run dev
+
+Abra http://localhost:3000 (layout de celular; no desktop aparece emoldurado).
+Produção: npm run build.
+
+## Dados
+
+As caminhadas ficam no localStorage do navegador (trilha:walks:v1 e
+trilha:goals:v1). Na primeira visita, o app oferece dados de exemplo.
+
+## Origem
+
+Projeto recriado a partir do arquivo único exportar-trilha.sh
+(comando: sh exportar-trilha.sh).
+
+## Publicar
+
+O GPS exige HTTPS: publique a pasta dist/ na Vercel, Netlify ou
+Cloudflare Pages (todos gratuitos).
+TRILHA_FILE_END
+
+cat > index.html <<'TRILHA_FILE_END'
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0C2B1E" />
+    <meta name="description" content="Trilha — registre suas caminhadas, acompanhe distância, ritmo e conquistas." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/svg+xml" href="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%230C2B1E'/%3E%3Cpath d='M9.2 5.4c1.5-.3 2.6 1 2.8 2.9.2 1.6-.4 2.9-1.8 3.2-1.4.3-2.5-.8-2.8-2.6-.3-1.7.3-3.2 1.8-3.5Zm.9 7.5c.9-.2 1.7.4 1.8 1.4l.2 1.6c.1.9-.5 1.7-1.4 1.9-.9.2-1.7-.4-1.8-1.3l-.2-1.7c-.1-.9.5-1.7 1.4-1.9Zm5-4.9c-1.5-.3-2.7 1-2.9 2.9-.2 1.6.4 2.9 1.8 3.2 1.4.3 2.5-.8 2.8-2.6.3-1.7-.3-3.2-1.7-3.5Zm-1 7.5c-.9-.2-1.7.4-1.8 1.4l-.2 1.6c-.1.9.5 1.7 1.4 1.9.9.2 1.7-.4 1.8-1.3l.2-1.7c.1-.9-.5-1.7-1.4-1.9Z' fill='%23FFC24B'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400..900;1,6..12,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <title>Trilha — diário de caminhadas</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+TRILHA_FILE_END
+
+cat > package.json <<'TRILHA_FILE_END'
 {
   "name": "trilha-app",
   "private": true,
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -57,73 +124,13 @@ cat > package.json <<'FIM_package'
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.1.7",
-    "typescript": "^5.7.0",
+    "typescript": "~5.7.0",
     "vite": "^6.3.5"
   }
 }
-FIM_package
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > .gitignore <<'FIM_gitignore'
-node_modules
-dist
-.DS_Store
-*.local
-FIM_gitignore
-
-# ---------------------------------------------------------------------
-cat > README.md <<'FIM_readme'
-# Trilha — diário de caminhadas
-
-App de celular (web) para registrar caminhadas: cronômetro + GPS, histórico,
-metas diárias/semanais e conquistas.
-
-## Rodar localmente
-
-    npm install
-    npm run dev
-
-Abra http://localhost:3000
-
-## Publicar (grátis, com HTTPS — necessário para o GPS no celular)
-
-    npm run build
-
-Depois suba a pasta `dist/` no Netlify, Vercel ou Cloudflare Pages.
-
-## Dados
-
-As caminhadas ficam salvas no navegador (localStorage) do dispositivo.
-FIM_readme
-
-# ---------------------------------------------------------------------
-cat > index.html <<'FIM_indexhtml'
-<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0C2B1E" />
-    <meta name="description" content="Trilha — registre suas caminhadas, acompanhe distância, ritmo e conquistas." />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%230C2B1E'/%3E%3Cpath d='M9.2 5.4c1.5-.3 2.6 1 2.8 2.9.2 1.6-.4 2.9-1.8 3.2-1.4.3-2.5-.8-2.8-2.6-.3-1.7.3-3.2 1.8-3.5Zm.9 7.5c.9-.2 1.7.4 1.8 1.4l.2 1.6c.1.9-.5 1.7-1.4 1.9-.9.2-1.7-.4-1.8-1.3l-.2-1.7c-.1-.9.5-1.7 1.4-1.9Zm5-4.9c-1.5-.3-2.7 1-2.9 2.9-.2 1.6.4 2.9 1.8 3.2 1.4.3 2.5-.8 2.8-2.6.3-1.7-.3-3.2-1.7-3.5Zm-1 7.5c-.9-.2-1.7.4-1.8 1.4l-.2 1.6c-.1.9.5 1.7 1.4 1.9.9.2 1.7-.4 1.8-1.3l.2-1.7c.1-.9-.5-1.7-1.4-1.9Z' fill='%23FFC24B'/%3E%3C/svg%3E" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400..900;1,6..12,400..700&display=swap"
-      rel="stylesheet"
-    />
-    <title>Trilha — diário de caminhadas</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-FIM_indexhtml
-
-# ---------------------------------------------------------------------
-cat > tsconfig.json <<'FIM_tsconfig'
+cat > tsconfig.json <<'TRILHA_FILE_END'
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -140,10 +147,9 @@ cat > tsconfig.json <<'FIM_tsconfig'
   },
   "include": ["src"]
 }
-FIM_tsconfig
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > vite.config.js <<'FIM_viteconfig'
+cat > vite.config.js <<'TRILHA_FILE_END'
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -159,20 +165,18 @@ export default defineConfig({
     },
   },
 });
-FIM_viteconfig
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/main.tsx <<'FIM_main'
+cat > src/main.tsx <<'TRILHA_FILE_END'
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
-FIM_main
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/index.css <<'FIM_css'
+cat > src/index.css <<'TRILHA_FILE_END'
 @import "tailwindcss";
 
 @theme {
@@ -295,10 +299,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .press:active {
   transform: scale(0.94);
 }
-FIM_css
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/lib.ts <<'FIM_lib'
+cat > src/lib.ts <<'TRILHA_FILE_END'
 import { format, startOfWeek, subDays, parseISO } from "date-fns";
 
 export type Mood = "otimo" | "bem" | "neutro" | "cansado" | "ruim";
@@ -357,7 +360,6 @@ export function loadWalks(): Walk[] {
     return [];
   }
 }
-
 export function saveWalks(walks: Walk[]) {
   try {
     localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
@@ -365,7 +367,6 @@ export function saveWalks(walks: Walk[]) {
     /* noop */
   }
 }
-
 export function loadGoals(): Goals {
   try {
     const raw = localStorage.getItem(GOALS_KEY);
@@ -375,7 +376,6 @@ export function loadGoals(): Goals {
     return { ...DEFAULT_GOALS };
   }
 }
-
 export function saveGoals(goals: Goals) {
   try {
     localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
@@ -649,10 +649,9 @@ function mulberry(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-FIM_lib
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/App.tsx <<'FIM_app'
+cat > src/App.tsx <<'TRILHA_FILE_END'
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -692,7 +691,6 @@ export default function App() {
     setToasts((t) => [...t.slice(-2), { id, kind, text }]);
     window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
   };
-
   const celebrate = () => {
     const colors = ["#1f6344", "#ffc24b", "#ff6b3d", "#8cc0a0"];
     confetti({ particleCount: 70, spread: 75, origin: { y: 0.65 }, colors, ticks: 160, scalar: 0.9 });
@@ -701,7 +699,6 @@ export default function App() {
       180,
     );
   };
-
   const addWalk = (w: NewWalk) => {
     const walk: Walk = { ...w, id: uid() };
     setWalks((prev) => [walk, ...prev]);
@@ -709,13 +706,11 @@ export default function App() {
     pushToast("ok", `+${fmtKm(walk.distanceKm)} km na conta. Mandou bem!`);
     setView("home");
   };
-
   const deleteWalk = (id: string) => {
     const target = walks.find((w) => w.id === id);
     setWalks((prev) => prev.filter((w) => w.id !== id));
     pushToast("del", target ? `Caminhada de ${fmtKm(target.distanceKm)} km apagada.` : "Caminhada apagada.");
   };
-
   const loadSample = () => {
     setWalks(sampleWalks());
     pushToast("ok", "Dados de exemplo carregados — explore à vontade!");
@@ -784,10 +779,9 @@ export default function App() {
     </div>
   );
 }
-FIM_app
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/components/Icons.tsx <<'FIM_icons'
+cat > src/components/Icons.tsx <<'TRILHA_FILE_END'
 import type { Mood } from "../lib";
 
 type P = { className?: string };
@@ -1014,10 +1008,9 @@ export function AchievementIcon({ icon, className }: { icon: "foot" | "flame" | 
     case "moon": return <IconMoon className={className} />;
   }
 }
-FIM_icons
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/components/ui.tsx <<'FIM_ui'
+cat > src/components/ui.tsx <<'TRILHA_FILE_END'
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
 import { buzz } from "../lib";
@@ -1261,10 +1254,9 @@ export function Bar({ value, className = "bg-sun-400", track = "bg-pine-100" }: 
     </div>
   );
 }
-FIM_ui
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/components/BottomNav.tsx <<'FIM_nav'
+cat > src/components/BottomNav.tsx <<'TRILHA_FILE_END'
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { buzz } from "../lib";
@@ -1308,7 +1300,6 @@ export default function BottomNav({ view, onChange }: { view: View; onChange: (v
       </button>
     );
   };
-
   return (
     <nav className="sticky bottom-0 z-30">
       <div className="border-t border-line bg-card/90 px-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md">
@@ -1336,10 +1327,9 @@ export default function BottomNav({ view, onChange }: { view: View; onChange: (v
     </nav>
   );
 }
-FIM_nav
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/views/HomeView.tsx <<'FIM_home'
+cat > src/views/HomeView.tsx <<'TRILHA_FILE_END'
 import { motion } from "framer-motion";
 import {
   Walk,
@@ -1610,10 +1600,9 @@ export default function HomeView({
     </div>
   );
 }
-FIM_home
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/views/TrackView.tsx <<'FIM_track'
+cat > src/views/TrackView.tsx <<'TRILHA_FILE_END'
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -2032,10 +2021,9 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     </div>
   );
 }
-FIM_track
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/views/HistoryView.tsx <<'FIM_history'
+cat > src/views/HistoryView.tsx <<'TRILHA_FILE_END'
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { parseISO } from "date-fns";
@@ -2250,10 +2238,9 @@ export default function HistoryView({
     </div>
   );
 }
-FIM_history
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/views/GoalsView.tsx <<'FIM_goals'
+cat > src/views/GoalsView.tsx <<'TRILHA_FILE_END'
 import { Walk, Goals, fmtKm, fmtDur, kmOn, weekKm, bestWeekKm, todayKey } from "../lib";
 import { Reveal, Stepper, Bar } from "../components/ui";
 import { IconTarget, IconCheck } from "../components/Icons";
@@ -2361,10 +2348,9 @@ export default function GoalsView({
     </div>
   );
 }
-FIM_goals
+TRILHA_FILE_END
 
-# ---------------------------------------------------------------------
-cat > src/views/AchievementsView.tsx <<'FIM_badges'
+cat > src/views/AchievementsView.tsx <<'TRILHA_FILE_END'
 import { Walk, computeAchievements, isUnlocked, fmtKm } from "../lib";
 import { Reveal, ProgressRing, Bar } from "../components/ui";
 import { AchievementIcon, IconTrophy } from "../components/Icons";
@@ -2455,22 +2441,21 @@ export default function AchievementsView({ walks }: { walks: Walk[] }) {
     </div>
   );
 }
-FIM_badges
+TRILHA_FILE_END
 
-# =====================================================================
-cd ..
-echo ""
-echo "========================================================="
-echo "  PROJETO CRIADO COM SUCESSO na pasta: $(pwd)/$RAIZ"
-echo "========================================================="
-echo ""
-echo "  Proximos passos:"
-echo "    cd $RAIZ"
-echo "    npm install"
-echo "    npm run dev"
-echo ""
-echo "  Depois abra http://localhost:3000 no navegador."
-echo ""
-echo "  Para publicar online (gratis): npm run build"
-echo "  e suba a pasta dist/ no Netlify, Vercel ou Cloudflare Pages."
-echo ""
+echo "" #
+echo "  Tudo certo! Projeto criado em: $DIR/trilha-app" #
+echo "" #
+echo "  Proximos passos:" #
+echo "    1) cd trilha-app" #
+echo "    2) npm install" #
+echo "    3) npm run dev" #
+echo "    4) abra http://localhost:3000 no navegador" #
+echo "" #
+echo "  Para enviar ao GitHub (depois), dentro de trilha-app:" #
+echo "    git init && git add . && git commit -m \"App Trilha\"" #
+echo "    git branch -M main" #
+echo "    git remote add origin https://github.com/SEU-USUARIO/trilha-app.git" #
+echo "    git push -u origin main" #
+echo "" #
+exit 0 #
