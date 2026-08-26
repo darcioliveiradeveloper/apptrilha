@@ -1,1 +1,122 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Bricolage Grotesque", "Nunito Sans", ui-sans-serif, sans-serif;
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #f2f6f0;
+  --color-card: #fcfdfb;
+  --color-ink: #0f231b;
+  --color-inksoft: #4c6156;
+  --color-line: #dde7dc;
+
+  --color-pine-50: #eaf4ee;
+  --color-pine-100: #d9ecdf;
+  --color-pine-200: #b7d9c3;
+  --color-pine-300: #8cc0a0;
+  --color-pine-400: #57a077;
+  --color-pine-500: #2e7d55;
+  --color-pine-600: #1f6344;
+  --color-pine-700: #174e36;
+  --color-pine-800: #123d2b;
+  --color-pine-900: #0c2b1e;
+  --color-pine-950: #071f15;
+
+  --color-sun-100: #fff3d6;
+  --color-sun-200: #ffe6a8;
+  --color-sun-300: #ffd678;
+  --color-sun-400: #ffc24b;
+  --color-sun-500: #f5a623;
+  --color-sun-600: #d97f0e;
+
+  --color-ember-100: #ffe4d9;
+  --color-ember-300: #ffa283;
+  --color-ember-400: #ff8059;
+  --color-ember-500: #ff6b3d;
+  --color-ember-600: #e8532a;
+  --color-ember-700: #c23e1c;
+
+  --color-sky-soft: #cfe3ee;
+
+  --animate-rise: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pop: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-blink: blink 1.4s ease-in-out infinite;
+  --animate-breathe: breathe 3.2s ease-in-out infinite;
+  --animate-drift: drift 26s linear infinite;
+  --animate-tickflash: tickflash 1s ease-out both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.86); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+  @keyframes drift {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes tickflash {
+    0% { background-color: color-mix(in srgb, var(--color-sun-400) 45%, transparent); }
+    100% { background-color: transparent; }
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  background-image:
+    radial-gradient(60rem 40rem at -10% -10%, color-mix(in srgb, var(--color-pine-200) 45%, transparent), transparent 60%),
+    radial-gradient(50rem 36rem at 110% 105%, color-mix(in srgb, var(--color-sun-300) 38%, transparent), transparent 60%);
+  background-attachment: fixed;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+}
+
+::selection {
+  background: var(--color-sun-300);
+  color: var(--color-pine-950);
+}
+
+.press {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.press:active {
+  transform: scale(0.94);
+}
