@@ -169,6 +169,27 @@ export const IconTimer = ({ className }: P) => (
   </svg>
 );
 
+export const IconDownload = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <path d="M12 4v10m0 0 4.2-4.2M12 14 7.8 9.8" />
+    <path d="M5 17.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.5" opacity=".7" />
+  </svg>
+);
+
+export const IconCopy = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <rect x="9" y="9" width="10.5" height="11" rx="2" />
+    <path d="M6.2 15H5.6A1.6 1.6 0 0 1 4 13.4v-7.8A1.6 1.6 0 0 1 5.6 4h7.8A1.6 1.6 0 0 1 15 5.6v.6" opacity=".7" />
+  </svg>
+);
+
+export const IconTerminal = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <rect x="3.5" y="5" width="17" height="14" rx="2.4" />
+    <path d="m7.5 10 3 2.4-3 2.4M12.8 15.2H16" />
+  </svg>
+);
+
 /* ---------- humor ---------- */
 
 const MOOD_COLOR: Record<Mood, string> = {
