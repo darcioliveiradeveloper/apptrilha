@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import type { ReactNode } from "react";
+import { Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import { buzz } from "../lib";
-import { IconCheck, IconX } from "./Icons";
+import { IconCheck, IconX, IconFoot } from "./Icons";
 
 /* ---------- anel de progresso ---------- */
 
@@ -224,6 +225,42 @@ export function TopoLines({ className, stroke = "currentColor" }: { className?: 
       <circle cx="60" cy="252" r="20" stroke={stroke} strokeWidth="1" opacity=".7" />
     </svg>
   );
+}
+
+/* ---------- guarda de erros (evita tela em branco) ---------- */
+
+export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error("Trilha encontrou um erro:", error, info);
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="flex min-h-dvh items-center justify-center px-6">
+          <div className="w-full max-w-[400px] rounded-[1.6rem] border border-line bg-card p-7 text-center shadow-xl">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-ember-100 text-ember-600">
+              <IconFoot className="h-7 w-7" />
+            </span>
+            <h1 className="mt-4 font-display text-xl font-extrabold">O Trilha tropeçou</h1>
+            <p className="mt-1.5 text-sm font-semibold text-inksoft">
+              Aconteceu um erro inesperado ao carregar. Atualize a página — suas caminhadas salvas continuam intactas.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="press mx-auto mt-5 rounded-full bg-pine-900 px-6 py-3 font-display text-base font-extrabold text-sun-300"
+            >
+              Recarregar app
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /* ---------- barra de progresso simples ---------- */

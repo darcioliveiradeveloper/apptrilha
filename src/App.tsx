@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import BottomNav, { type View } from "./components/BottomNav";
-import { Toasts, type ToastMsg, TopoLines } from "./components/ui";
+import { Toasts, type ToastMsg, TopoLines, ErrorBoundary } from "./components/ui";
 import { IconFoot, IconDownload, IconCheck } from "./components/Icons";
 import { downloadProjectZip } from "./exporter";
 import HomeView from "./views/HomeView";
