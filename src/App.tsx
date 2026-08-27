@@ -4,7 +4,6 @@ import confetti from "canvas-confetti";
 import BottomNav, { type View } from "./components/BottomNav";
 import { Toasts, type ToastMsg, TopoLines, ErrorBoundary } from "./components/ui";
 import { IconFoot, IconDownload, IconCheck } from "./components/Icons";
-import { downloadProjectZip } from "./exporter";
 import HomeView from "./views/HomeView";
 import TrackView, { type NewWalk } from "./views/TrackView";
 import HistoryView from "./views/HistoryView";
@@ -72,6 +71,7 @@ export default function App() {
     if (exportState === "busy") return;
     setExportState("busy");
     try {
+      const { downloadProjectZip } = await import("./exporter");
       await downloadProjectZip();
       setExportState("done");
       pushToast("ok", "trilha-app.zip a caminho — olhe a pasta de downloads!");

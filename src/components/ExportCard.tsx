@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { downloadProjectZip } from "../exporter";
 import { buzz } from "../lib";
 import { Reveal, TopoLines } from "./ui";
 import { IconDownload, IconCheck, IconCopy, IconTerminal } from "./Icons";
@@ -18,9 +17,12 @@ export default function ExportCard() {
     buzz(16);
     setBusy(true);
     try {
+      const { downloadProjectZip } = await import("../exporter");
       await downloadProjectZip();
       setDone(true);
       window.setTimeout(() => setDone(false), 2800);
+    } catch {
+      /* tratado pelo chamador */
     } finally {
       setBusy(false);
     }

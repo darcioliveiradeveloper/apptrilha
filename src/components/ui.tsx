@@ -229,10 +229,14 @@ export function TopoLines({ className, stroke = "currentColor" }: { className?: 
 
 /* ---------- guarda de erros (evita tela em branco) ---------- */
 
-export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
+export class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean; message: string; stack: string }
+> {
+  state = { failed: false, message: "", stack: "" };
+  static getDerivedStateFromError(error: unknown) {
+    const e = error instanceof Error ? error : new Error(String(error));
+    return { failed: true, message: e.message || String(error), stack: e.stack || "" };
   }
   componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error("Trilha encontrou um erro:", error, info);
@@ -240,15 +244,26 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   render() {
     if (this.state.failed) {
       return (
-        <div className="flex min-h-dvh items-center justify-center px-6">
-          <div className="w-full max-w-[400px] rounded-[1.6rem] border border-line bg-card p-7 text-center shadow-xl">
+        <div className="flex min-h-dvh items-center justify-center px-6 py-10">
+          <div className="w-full max-w-[420px] rounded-[1.6rem] border border-line bg-card p-7 text-center shadow-xl">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-ember-100 text-ember-600">
               <IconFoot className="h-7 w-7" />
             </span>
             <h1 className="mt-4 font-display text-xl font-extrabold">O Trilha tropeçou</h1>
             <p className="mt-1.5 text-sm font-semibold text-inksoft">
-              Aconteceu um erro inesperado ao carregar. Atualize a página — suas caminhadas salvas continuam intactas.
+              Aconteceu um erro inesperado ao carregar. Suas caminhadas salvas continuam intactas.
             </p>
+            <div className="mt-4 rounded-xl border border-ember-300/60 bg-ember-100/60 p-3 text-left">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-ember-700">detalhe do erro</p>
+              <p className="mt-1 break-words font-mono text-[12px] font-bold leading-snug text-ember-700">
+                {this.state.message}
+              </p>
+              {this.state.stack && (
+                <p className="mt-1.5 max-h-24 overflow-auto break-words font-mono text-[10px] leading-snug text-ember-700/80">
+                  {this.state.stack.split("\n").slice(0, 4).join("\n")}
+                </p>
+              )}
+            </div>
             <button
               onClick={() => window.location.reload()}
               className="press mx-auto mt-5 rounded-full bg-pine-900 px-6 py-3 font-display text-base font-extrabold text-sun-300"
