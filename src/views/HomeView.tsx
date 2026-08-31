@@ -17,7 +17,6 @@ import {
 } from "../lib";
 import { ProgressRing, Reveal, TopoLines, Bar } from "../components/ui";
 import { IconFlame, IconPlay, IconChevronR, IconFoot, MoodFace } from "../components/Icons";
-import ExportCard from "../components/ExportCard";
 
 const QUOTES = [
   "Mil passos começam com um pé na porta.",
@@ -266,9 +265,6 @@ export default function HomeView({
           </p>
         </div>
       )}
-
-      {/* baixar o projeto */}
-      <ExportCard />
     </div>
   );
 }

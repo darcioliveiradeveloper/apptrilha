@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import BottomNav, { type View } from "./components/BottomNav";
 import { Toasts, type ToastMsg, TopoLines, ErrorBoundary } from "./components/ui";
-import { IconFoot, IconDownload, IconCheck } from "./components/Icons";
+import { IconFoot } from "./components/Icons";
 import HomeView from "./views/HomeView";
 import TrackView, { type NewWalk } from "./views/TrackView";
 import HistoryView from "./views/HistoryView";
@@ -66,22 +66,6 @@ export default function App() {
     pushToast("ok", "Dados de exemplo carregados — explore à vontade!");
   };
 
-  const [exportState, setExportState] = useState<"idle" | "busy" | "done">("idle");
-  const handleExport = async () => {
-    if (exportState === "busy") return;
-    setExportState("busy");
-    try {
-      const { downloadProjectZip } = await import("./exporter");
-      await downloadProjectZip();
-      setExportState("done");
-      pushToast("ok", "trilha-app.zip a caminho — olhe a pasta de downloads!");
-      window.setTimeout(() => setExportState("idle"), 3000);
-    } catch {
-      setExportState("idle");
-      pushToast("del", "Não foi possível gerar o ZIP. Tente novamente.");
-    }
-  };
-
   return (
     <div className="min-h-dvh">
       <Toasts items={toasts} />
@@ -104,36 +88,9 @@ export default function App() {
               Trilha<span className="text-ember-500">.</span>
             </span>
           </button>
-          <div className="flex items-center gap-2">
-            <span className="hidden rounded-full border border-line bg-card px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-inksoft min-[480px]:block">
-              diário de caminhadas
-            </span>
-            <button
-              onClick={handleExport}
-              disabled={exportState === "busy"}
-              title="Baixar o projeto completo (.zip)"
-              aria-label="Baixar o projeto completo em ZIP"
-              className={`press relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-extrabold shadow-[0_8px_18px_-8px_rgba(7,31,21,0.6)] transition-colors ${
-                exportState === "done"
-                  ? "bg-pine-500 text-pine-50"
-                  : "bg-pine-900 text-sun-300 hover:bg-pine-800"
-              } disabled:opacity-70`}
-            >
-              {exportState === "busy" ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-sun-300/40 border-t-sun-300" />
-              ) : exportState === "done" ? (
-                <IconCheck className="h-3.5 w-3.5" />
-              ) : (
-                <>
-                  <IconDownload className="h-3.5 w-3.5" />
-                  <span className="tnum">.zip</span>
-                </>
-              )}
-              {exportState === "idle" && (
-                <span className="pointer-events-none absolute inset-0 animate-breathe rounded-full ring-2 ring-sun-400/50" />
-              )}
-            </button>
-          </div>
+          <span className="hidden rounded-full border border-line bg-card px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-inksoft min-[480px]:block">
+            diário de caminhadas
+          </span>
         </div>
 
         {/* conteúdo */}
