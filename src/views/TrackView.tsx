@@ -250,8 +250,12 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     stopWatch();
     stopMotion();
     setMoving(false);
-    const gpsKm = metersRef.current / 1000;
-    setFDist(gpsKm >= 0.05 ? gpsKm.toFixed(2).replace(".", ",") : "");
+    let gpsKm = metersRef.current / 1000;
+    // sem GPS suficiente, estima pela quantidade de passos + ritmo médio
+    if (gpsKm < 0.01 && stepsRef.current > 0) {
+      gpsKm = (stepsRef.current * 0.72) / 1000;
+    }
+    setFDist(gpsKm >= 0.01 ? gpsKm.toFixed(2).replace(".", ",") : "");
     setFMin(String(Math.max(1, Math.round(accRef.current / 60000))));
     setFDate(todayKey());
     setFMood("bem");

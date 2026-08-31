@@ -41,6 +41,11 @@ function Gate() {
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
 
+  // ao sair, volta sempre para a tela de login (não para o cadastro)
+  useEffect(() => {
+    if (!user) setMode("login");
+  }, [user]);
+
   if (loading) return <Splash />;
   if (!user) {
     return mode === "login" ? (
