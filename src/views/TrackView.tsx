@@ -63,6 +63,13 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
   };
   const startWatch = () => {
     if (!("geolocation" in navigator)) {
+      console.warn("[TrackView] Geolocation API not available");
+      setGps("denied");
+      return;
+    }
+    const isSecure = location.protocol === "https:" || location.hostname === "localhost";
+    if (!isSecure) {
+      console.warn("[TrackView] Geolocation requires HTTPS");
       setGps("denied");
       return;
     }
@@ -82,7 +89,10 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
           lastFixRef.current = pos;
         }
       },
-      () => setGps("denied"),
+      (err) => {
+        console.warn("[TrackView] Geolocation error:", err.code, err.message);
+        setGps("denied");
+      },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
     );
   };
@@ -104,6 +114,15 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       setElapsed(accRef.current);
     }, 250);
     startWatch();
+  };
+
+  const startWithErrorCheck = () => {
+    try {
+      start();
+    } catch (e) {
+      console.error("[TrackView] start failed:", e);
+      setPhase("running");
+    }
   };
 
   const pause = () => {
@@ -229,7 +248,7 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center"
             >
-              <button onClick={start} aria-label="Iniciar caminhada" className="press group relative grid h-52 w-52 place-items-center">
+              <button onClick={startWithErrorCheck} aria-label="Iniciar caminhada" className="press group relative grid h-52 w-52 place-items-center">
                 <span className="absolute inset-0 rounded-full bg-pine-900/10 animate-breathe" />
                 <span className="absolute inset-3 rounded-full bg-pine-900/15 animate-breathe [animation-delay:0.6s]" />
                 <span className="relative grid h-40 w-40 place-items-center rounded-full bg-pine-900 text-sun-400 shadow-[0_24px_50px_-16px_rgba(7,31,21,0.6)] transition-transform group-hover:scale-[1.03]">
@@ -271,7 +290,9 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
                     </div>
                   </div>
                   {gps === "denied" && (
-                    <p className="mt-4 text-xs font-bold text-sun-300">Sem GPS? Sem crise: você informa os km ao concluir.</p>
+                    <p className="mt-3 text-xs font-bold text-sun-300 bg-sun-600/20 px-3 py-1.5 rounded-full inline-block animate-blink">
+                      GPS indisponível — o tempo roda normal, insira a distância ao concluir
+                    </p>
                   )}
                 </div>
               </div>

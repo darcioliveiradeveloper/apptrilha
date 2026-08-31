@@ -38,7 +38,10 @@ export function uid(): string {
 
 export function buzz(ms = 12) {
   try {
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(ms);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      const vb = navigator.vibrate;
+      if (typeof vb === "function") vb.call(navigator, [ms]);
+    }
   } catch {
     /* noop */
   }
