@@ -229,6 +229,64 @@ export function haversineM(a: GeolocationCoordinates, b: GeolocationCoordinates)
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+export interface TrackPoint {
+  lat: number;
+  lon: number;
+  t: number;
+}
+
+interface Accel {
+  x?: number | null;
+  y?: number | null;
+  z?: number | null;
+}
+
+/**
+ * Detector de passos via acelerômetro (DeviceMotion).
+ * Abaixa o sinal, detecta picos/atravessamentos de zero da magnitude
+ * com debounce para contar um passo por passada (máx ~150/min).
+ */
+export interface StepDetector {
+  push(acc: Accel): void;
+  reset(): void;
+}
+
+export function createStepDetector(onStep: () => void): StepDetector {
+  let accFilter = 0;
+  let crossingUp = false;
+  let nextStepAt = 0;
+  const MAX_RATE = 300; // ms mínimo entre passos (~200/min no teto)
+
+  const push = (acc: Accel) => {
+    const x = Number(acc.x ?? 0);
+    const y = Number(acc.y ?? 0);
+    const z = Number(acc.z ?? 0);
+    const mag = Math.sqrt(x * x + y * y + z * z) - 9.81;
+    accFilter = accFilter * 0.8 + mag * 0.2;
+
+    const now = Date.now();
+    if (accFilter > 1.1 && !crossingUp) crossingUp = true;
+    else if (accFilter < -1.1 && crossingUp && now >= nextStepAt) {
+      crossingUp = false;
+      nextStepAt = now + MAX_RATE;
+      onStep();
+    }
+  };
+
+  const reset = () => {
+    accFilter = 0;
+    crossingUp = false;
+    nextStepAt = 0;
+  };
+
+  return { push, reset };
+}
+
+/** distância média por passo em metros (usada como fallback sem acelerômetro) */
+export function strideM(kmPerHour: number): number {
+  return kmPerHour <= 0 ? 0.7 : Math.min(0.95, Math.max(0.5, kmPerHour * 0.12 + 0.35));
+}
+
 /* ---------- conquistas ---------- */
 
 export interface Achievement {

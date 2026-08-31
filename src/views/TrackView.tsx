@@ -10,9 +10,12 @@ import {
   haversineM,
   buzz,
   parseDec,
+  createStepDetector,
+  type TrackPoint,
 } from "../lib";
 import { Sheet, TopoLines } from "../components/ui";
-import { IconPlay, IconPause, IconFlag, IconPin, IconX, MoodFace, IconTimer } from "../components/Icons";
+import { TrackMap } from "../components/TrackMap";
+import { IconPlay, IconPause, IconFlag, IconPin, IconX, MoodFace, IconTimer, IconBolt } from "../components/Icons";
 
 type Phase = "idle" | "running" | "paused" | "done";
 type Gps = "off" | "locating" | "on" | "denied";
@@ -24,6 +27,14 @@ export interface NewWalk {
   note?: string;
   date: string;
   startedAt: number;
+  steps?: number;
+  track?: TrackPoint[];
+}
+
+function motionLabel(gps: Gps, moving: boolean): { txt: string; cls: string } {
+  if (moving) return { txt: "Em movimento", cls: "border-pine-500 bg-pine-500 text-pine-50 animate-blink" };
+  if (gps === "on") return { txt: "GPS ativo · parado", cls: "border-pine-200 bg-pine-50 text-pine-700" };
+  return { txt: "Aguardando movimento…", cls: "border-line bg-card text-inksoft" };
 }
 
 export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) {
@@ -31,6 +42,9 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
   const [elapsed, setElapsed] = useState(0);
   const [gps, setGps] = useState<Gps>("off");
   const [meters, setMeters] = useState(0);
+  const [steps, setSteps] = useState(0);
+  const [moving, setMoving] = useState(false);
+  const [points, setPoints] = useState<TrackPoint[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // formulário
@@ -47,7 +61,23 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
   const watchRef = useRef<number | null>(null);
   const lastFixRef = useRef<GeolocationPosition | null>(null);
   const metersRef = useRef(0);
+  const stepsRef = useRef(0);
+  const pointsRef = useRef<TrackPoint[]>([]);
+  const lastMoveLogRef = useRef(0);
+  const motionListenerRef = useRef<((e: DeviceMotionEvent) => void) | null>(null);
   const startedAtRef = useRef(Date.now());
+
+  const stepDetectorRef = useRef(createStepDetector(() => {
+    stepsRef.current += 1;
+    setSteps(stepsRef.current);
+    lastMoveLogRef.current = Date.now();
+    setMoving(true);
+  }));
+
+  const tellMoving = () => {
+    const now = Date.now();
+    if (now - lastMoveLogRef.current > 5000) setMoving(false);
+  };
 
   const stopClock = () => {
     if (intervalRef.current !== null) {
@@ -55,12 +85,56 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       intervalRef.current = null;
     }
   };
+
   const stopWatch = () => {
     if (watchRef.current !== null && "geolocation" in navigator) {
       navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
     }
   };
+
+  const stopMotion = () => {
+    if (motionListenerRef.current) {
+      window.removeEventListener("devicemotion", motionListenerRef.current as EventListener);
+      motionListenerRef.current = null;
+    }
+  };
+
+  const startMotion = () => {
+    if (motionListenerRef.current) return;
+    const handler = (e: DeviceMotionEvent) => {
+      if (e.accelerationIncludingGravity) stepDetectorRef.current.push(e.accelerationIncludingGravity);
+    };
+    motionListenerRef.current = handler;
+    window.addEventListener("devicemotion", handler as EventListener);
+    // fallback de passos pela distância quando não houver acelerômetro
+    window.setTimeout(() => {
+      if (stepsRef.current === 0 && metersRef.current > 0) {
+        const km = metersRef.current / 1000;
+        const durH = accRef.current / 3600000;
+        const speed = durH > 0 ? km / durH : 0;
+        const stride = 0.7;
+        const est = Math.floor(metersRef.current / stride);
+        if (est > stepsRef.current) {
+          stepsRef.current = est;
+          setSteps(est);
+        }
+        }
+      }, 4000);
+  };
+
+  const registerMotionPermission = async () => {
+    const dm = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    if (typeof dm.requestPermission === "function") {
+      try {
+        await dm.requestPermission();
+      } catch {
+        /* noop */
+      }
+    }
+    startMotion();
+  };
+
   const startWatch = () => {
     if (!("geolocation" in navigator)) {
       console.warn("[TrackView] Geolocation API not available");
@@ -84,9 +158,13 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
             if (d > 2.5 && d < 150) {
               metersRef.current += d;
               setMeters(metersRef.current);
+              lastMoveLogRef.current = Date.now();
+              setMoving(true);
             }
           }
           lastFixRef.current = pos;
+          pointsRef.current = [...pointsRef.current, { lat: pos.coords.latitude, lon: pos.coords.longitude, t: Date.now() }];
+          setPoints(pointsRef.current);
         }
       },
       (err) => {
@@ -101,8 +179,15 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     buzz(20);
     accRef.current = 0;
     metersRef.current = 0;
+    stepsRef.current = 0;
+    pointsRef.current = [];
     lastFixRef.current = null;
+    lastMoveLogRef.current = 0;
+    stepDetectorRef.current.reset();
     setMeters(0);
+    setSteps(0);
+    setPoints([]);
+    setMoving(false);
     setElapsed(0);
     startedAtRef.current = Date.now();
     tickRef.current = Date.now();
@@ -112,8 +197,10 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       accRef.current += now - tickRef.current;
       tickRef.current = now;
       setElapsed(accRef.current);
+      tellMoving();
     }, 250);
     startWatch();
+    void registerMotionPermission();
   };
 
   const startWithErrorCheck = () => {
@@ -132,6 +219,8 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     setElapsed(accRef.current);
     stopClock();
     stopWatch();
+    stopMotion();
+    setMoving(false);
     setPhase("paused");
   };
 
@@ -144,8 +233,10 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       accRef.current += now - tickRef.current;
       tickRef.current = now;
       setElapsed(accRef.current);
+      tellMoving();
     }, 250);
     startWatch();
+    void registerMotionPermission();
   };
 
   const finish = () => {
@@ -157,6 +248,8 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     }
     stopClock();
     stopWatch();
+    stopMotion();
+    setMoving(false);
     const gpsKm = metersRef.current / 1000;
     setFDist(gpsKm >= 0.05 ? gpsKm.toFixed(2).replace(".", ",") : "");
     setFMin(String(Math.max(1, Math.round(accRef.current / 60000))));
@@ -172,11 +265,15 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
     buzz(12);
     stopClock();
     stopWatch();
+    stopMotion();
     accRef.current = 0;
     setElapsed(0);
     setMeters(0);
+    setSteps(0);
+    setPoints([]);
     setPhase("idle");
     setGps("off");
+    setMoving(false);
   };
 
   const submit = () => {
@@ -193,18 +290,23 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       note: fNote.trim() || undefined,
       date: fDate,
       startedAt: startedAtRef.current,
+      steps: stepsRef.current || undefined,
+      track: pointsRef.current.length > 1 ? pointsRef.current : undefined,
     });
     setSheetOpen(false);
     setPhase("idle");
     metersRef.current = 0;
     setMeters(0);
+    setSteps(0);
+    setPoints([]);
     setGps("off");
   };
 
-  useEffect(() => () => { stopClock(); stopWatch(); }, []);
+  useEffect(() => () => { stopClock(); stopWatch(); stopMotion(); }, []);
 
   const gpsKm = meters / 1000;
   const livePace = gpsKm > 0.15 ? fmtPace(elapsed / 1000, gpsKm) : null;
+  const mov = motionLabel(gps, moving);
 
   const gpsChip = {
     off: { txt: "GPS em espera", cls: "border-line bg-card text-inksoft", dot: "bg-line" },
@@ -256,7 +358,7 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
                 </span>
               </button>
               <p className="mt-6 max-w-[26ch] text-center text-sm font-bold text-inksoft">
-                Toque para iniciar. O tempo corre aqui; a distância vem do GPS — ou você digita no final.
+                Toque para iniciar. O tempo corre aqui; a distância, os passos e o mapa vêm do GPS — ou você digita no final.
               </p>
             </motion.div>
           ) : (
@@ -271,9 +373,14 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
               <div className="relative overflow-hidden rounded-[1.8rem] bg-pine-900 px-5 py-8 text-center text-pine-50 shadow-[0_20px_44px_-18px_rgba(7,31,21,0.65)]">
                 <TopoLines className="pointer-events-none absolute inset-0 h-full w-full text-pine-700/70" />
                 <div className="relative">
-                  <p className="flex items-center justify-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-pine-300">
-                    <IconTimer className="h-4 w-4" /> tempo de trilha
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-pine-300">
+                      <IconTimer className="h-4 w-4" /> tempo de trilha
+                    </span>
+                    <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider ${mov.cls}`}>
+                      <IconBolt className="h-3.5 w-3.5" /> {mov.txt}
+                    </span>
+                  </div>
                   <p className={`mt-2 font-display text-[4.2rem] font-extrabold leading-none tnum ${phase === "paused" ? "opacity-60" : ""}`}>
                     {fmtClock(elapsed)}
                   </p>
@@ -282,6 +389,12 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-pine-300">distância</p>
                       <p className="font-display text-xl font-extrabold tnum">
                         {gpsKm > 0.02 ? `${fmtKm(gpsKm, 2)} km` : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-pine-800/85 px-4 py-2.5">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-pine-300">passos</p>
+                      <p className="font-display text-xl font-extrabold tnum">
+                        {steps > 0 ? steps.toLocaleString("pt-BR") : "—"}
                       </p>
                     </div>
                     <div className="rounded-xl bg-pine-800/85 px-4 py-2.5">
@@ -295,6 +408,10 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="mt-5">
+                <TrackMap points={points} />
               </div>
 
               <div className="mt-5 flex items-center justify-center gap-3">
@@ -338,7 +455,7 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
         >
           {[
             ["1", "Dê o play e guarde o celular no bolso"],
-            ["2", "Caminhe no seu ritmo — o GPS soma os passos"],
+            ["2", "Caminhe — o GPS soma distância, passos e o mapa"],
             ["3", "Conclua, ajuste os km se precisar e salve"],
           ].map(([n, t]) => (
             <div key={n} className="flex items-center gap-3.5 rounded-[1.2rem] border border-line bg-card px-4 py-3">
@@ -359,6 +476,12 @@ export default function TrackView({ onSave }: { onSave: (w: NewWalk) => void }) 
       >
         <h2 className="font-display text-2xl font-extrabold">Registrar caminhada 🎉</h2>
         <p className="mt-0.5 text-sm font-semibold text-inksoft">Confira os dados antes de salvar.</p>
+
+        {points.length > 1 && (
+          <div className="mt-4">
+            <TrackMap points={points} />
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <label className="block">

@@ -190,6 +190,34 @@ export const IconTerminal = ({ className }: P) => (
   </svg>
 );
 
+export const IconRefresh = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+    <path d="M20 3.5V8h-4.5" />
+  </svg>
+);
+
+export const IconLogout = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <path d="M14 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H14" />
+    <path d="M11 12h9m0 0-3.5-3.5M20 12l-3.5 3.5" />
+  </svg>
+);
+
+export const IconShield = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <path d="M12 3.5 5 6v5.2c0 4 2.9 7.5 7 9 4.1-1.5 7-5 7-9V6l-7-2.5Z" />
+    <path d="m9 12 2 2 4-4.5" />
+  </svg>
+);
+
+export const IconUser = ({ className }: P) => (
+  <svg viewBox="0 0 24 24" className={className} {...S} aria-hidden>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </svg>
+);
+
 /* ---------- humor ---------- */
 
 const MOOD_COLOR: Record<Mood, string> = {
