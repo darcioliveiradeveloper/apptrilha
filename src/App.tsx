@@ -28,9 +28,9 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const toastId = useRef(0);
 
-  useEffect(() => saveWalks(walks), [walks]);
-  useEffect(() => saveGoals(goals), [goals]);
-  useEffect(() => window.scrollTo({ top: 0 }), [view]);
+  useEffect(() => { saveWalks(walks); }, [walks]);
+  useEffect(() => { saveGoals(goals); }, [goals]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
 
   const pushToast = (kind: ToastMsg["kind"], text: string) => {
     const id = ++toastId.current;
