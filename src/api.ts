@@ -45,6 +45,35 @@ export function setToken(token: string | null) {
   }
 }
 
+export const CACHED_USER_KEY = "trilha:user:v1";
+
+export function getCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    if (!raw) return null;
+    const u = JSON.parse(raw) as User;
+    return u && typeof u.id === "string" && typeof u.name === "string" ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedUser(user: User) {
+  try {
+    localStorage.setItem(CACHED_USER_KEY, JSON.stringify(user));
+  } catch {
+    /* noop */
+  }
+}
+
+export function clearCachedUser() {
+  try {
+    localStorage.removeItem(CACHED_USER_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
 export function apiLogin(email: string, password: string) {
   return request<AuthResponse>("/auth/login", {
     method: "POST",
